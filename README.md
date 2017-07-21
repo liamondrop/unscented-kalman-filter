@@ -10,10 +10,10 @@ For testing, the project uses the Term 2 Simulator, which can be downloaded [her
 
 To help in installing dependencies, choose the install script appropriate for your system ([Mac](./install-mac.sh) or [Ubuntu Linux](./install-ubuntu.sh)). Once the installation of dependencies is complete, the main program can be built and run by doing the following from the project's top level directory.
 
-1. mkdir build
-2. cd build
-3. cmake ..
-4. make
-5. ./UnscentedKF
+1. `mkdir build`
+2. `cd build`
+3. `cmake ..`
+4. `make`
+5. `./UnscentedKF`
 
 ** Note: in the dependencies listed in CMakeLists.txt, the path to your libuv may vary. If that's the case, you will need to update this path in CMakeLists.txt **
