@@ -23,17 +23,15 @@ UKF::UKF() {
   Xsig_pred_ = MatrixXd(n_x_, n_sig_);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 2;
+  std_a_ = 1;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.3;
+  std_yawdd_ = 0.2;
 
-  // create vector for weights
+  // create weights vector
   weights_ = VectorXd(n_sig_);
-  weights_(0) = lambda_ / (lambda_ + n_aug_);
-  for (int i = 1; i < n_sig_; i++) {  // 2n+1 weights
-    weights_(i) = 0.5 / (n_aug_ + lambda_);
-  }
+  weights_.fill(0.5 / (n_aug_ + lambda_));
+  weights_(0) = lambda_ / (n_aug_ + lambda_);
 
   // NIS for radar
   NIS_radar_ = 0.0;
@@ -52,35 +50,26 @@ UKF::~UKF() {}
  * measurement and this one.
  */
 void UKF::predict(const float &delta_t) {
-  // create augmented mean vector
-  VectorXd x_aug = VectorXd(n_aug_);
-
-  // create augmented state covariance
-  MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
-
-  // create sigma point matrix
-  MatrixXd Xsig_aug = MatrixXd(n_aug_, n_sig_);
-
   // create augmented mean state
+  VectorXd x_aug = VectorXd(n_aug_);
   x_aug.fill(0.0);
   x_aug.head(n_x_) = x_;
 
-  // create augmented covariance matrix
+  // create augmented state covariance
+  MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
   P_aug.fill(0.0);
   P_aug.topLeftCorner(n_x_, n_x_) = P_;
   P_aug(n_x_,   n_x_)   = std_a_ * std_a_;
   P_aug(n_x_+1, n_x_+1) = std_yawdd_ * std_yawdd_;
 
-  // create square root matrix
-  MatrixXd P_root = P_aug.llt().matrixL();
-  P_root *= sqrt(lambda_ + n_aug_);
+  // modify P_aug by spreading param & take the square root (Cholesky decomp)
+  MatrixXd P_aug_root = ((lambda_ + n_aug_) * P_aug).llt().matrixL();
 
   // create augmented sigma points
+  MatrixXd Xsig_aug = MatrixXd(n_aug_, n_sig_);
   Xsig_aug.col(0) = x_aug;
-  for (int i = 0; i < n_aug_; i++) {
-    Xsig_aug.col(i + 1) = x_aug + P_root.col(i);
-    Xsig_aug.col(i + 1 + n_aug_) = x_aug - P_root.col(i);
-  }
+  Xsig_aug.block(0, 1, n_aug_, n_aug_) = (P_aug_root.colwise() + x_aug);
+  Xsig_aug.rightCols(n_aug_) = ((-P_aug_root).colwise() + x_aug);
 
   // predict sigma points
   for (int i = 0; i < n_sig_; i++) {
@@ -95,7 +84,9 @@ void UKF::predict(const float &delta_t) {
     // predicted state values
     double px_p, py_p;
 
-    // avoid division by zero
+    // predicted state values for CRTV motion model
+    // division by zero or very small value implies a nearly straight line,
+    // so degenerate to simpler CV motion model when yawd is sufficiently small
     if (fabs(yawd) > 0.001) {
       px_p = p_x + v / yawd * (sin(yaw + yawd * delta_t) - sin(yaw));
       py_p = p_y + v / yawd * (cos(yaw) - cos(yaw + yawd * delta_t));
@@ -108,12 +99,11 @@ void UKF::predict(const float &delta_t) {
     double yaw_p = yaw + yawd * delta_t;
     double yawd_p = yawd;
 
-    // add noise
-    px_p += 0.5 * nu_a * delta_t * delta_t * cos(yaw);
-    py_p += 0.5 * nu_a * delta_t * delta_t * sin(yaw);
-    v_p += nu_a * delta_t;
-
-    yaw_p += 0.5 * nu_yawdd * delta_t * delta_t;
+    // add acceleration noise to predicted state
+    px_p   += 0.5 * nu_a * delta_t * delta_t * cos(yaw);
+    py_p   += 0.5 * nu_a * delta_t * delta_t * sin(yaw);
+    v_p    += nu_a * delta_t;
+    yaw_p  += 0.5 * nu_yawdd * delta_t * delta_t;
     yawd_p += nu_yawdd * delta_t;
 
     // write predicted sigma point into right column
