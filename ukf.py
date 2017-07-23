@@ -69,8 +69,8 @@ class UKF(object):
             px, py, v, yaw, yawd, nu_a, nu_yawdd = X_sigma_aug[:, col]
 
             # predicted state values for CTRV motion model
-            # division by zero or very small value implies a nearly straight line,
-            # so degenerate to simpler CV motion model when yawd is sufficiently small
+            # if yawd is a very small value, it implies a nearly straight line,
+            # so degenerate to simpler CV motion model in that case
             if abs(yawd) > 0.001:
                 px_p = px + v / yawd * (np.sin(yaw + yawd * delta_t) - np.sin(yaw))
                 py_p = py + v / yawd * (np.cos(yaw) - np.cos(yaw + yawd * delta_t))
