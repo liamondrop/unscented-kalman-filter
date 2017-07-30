@@ -4,7 +4,7 @@
 
 ### **Project Overview**
 
-This project contains the results from Project 1 of Term 2 in the Udacity Self-Driving Car Engineer Nanodegree. The goal of this project is to create an Unscented Kalman Filter that fuses Lidar and Radar measurements.
+This project contains the results from Project 2 of Term 2 in the Udacity Self-Driving Car Engineer Nanodegree. The goal of this project is to create an Unscented Kalman Filter that fuses Lidar and Radar measurements.
 
 For testing, the project uses the Term 2 Simulator, which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases).
 
